@@ -1031,6 +1031,28 @@ def chat(request: ChatRequest):
 
         return {"response": text.strip()}
 
+    if msg.startswith("run ") or msg.startswith("ejecuta "):
+        command_text = raw.strip()
+        job_id = create_job("Executor Agent", command_text)
+        summary = smart_summary(command_text)
+        add_activity(
+            "Executor Agent",
+            "queued",
+            summary,
+            detail=command_text,
+            ref_type="job",
+            ref_id=job_id,
+        )
+        response = (
+            f"✅ Executor Agent iniciado.\n"
+            f"Job #{job_id} creado.\n\n"
+            f"Comando: {command_text}\n\n"
+            f"Puedes ver el resultado con:\n"
+            f"job {job_id}"
+        )
+        add_message("assistant", response)
+        return {"response": response}
+
     if msg.startswith("task "):
         task_text = raw.replace("task", "", 1).strip()
 
