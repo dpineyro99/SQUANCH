@@ -738,6 +738,106 @@ def start_codex_job(user_message: str):
 
     return job_id, summary
 
+
+def get_recent_tasks_for_dream(limit: int = 20):
+    conn = db()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, text, done, created_at
+        FROM tasks
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (limit,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [
+        {
+            "id": row[0],
+            "text": row[1],
+            "done": row[2],
+            "created_at": row[3],
+        }
+        for row in rows
+    ]
+
+
+def run_dream_cycle():
+    memories = get_memories(limit=30)
+    tasks = get_recent_tasks_for_dream(limit=20)
+    jobs = get_jobs(limit=15)
+    activities = get_activities(limit=20)
+
+    context = {
+        "recent_memories": memories,
+        "recent_tasks": tasks,
+        "recent_jobs": jobs,
+        "recent_activities": activities,
+    }
+
+    prompt = f"""
+Eres Dream Cycle v0.1 de SQUANCH.
+
+Tu trabajo NO es hacer un resumen bonito.
+Tu trabajo es detectar patrones, ventajas, errores repetidos y oportunidades de mejora.
+
+Contexto reciente de SQUANCH:
+{json.dumps(context, ensure_ascii=False, indent=2)}
+
+Analiza especialmente:
+1. Trades, inversiones, apuestas, picks, Polymarket, Sports Intelligence y portfolio.
+2. Patrones que puedan convertirse en edge.
+3. Errores repetidos o riesgos.
+4. Ideas que deberían probarse en paper/backtest antes de producción.
+5. Acciones concretas para mañana.
+
+Devuelve en español con este formato:
+
+DREAM CYCLE v0.1
+
+1. Patrones detectados
+- ...
+
+2. Posibles edges / ventajas
+- ...
+
+3. Riesgos o errores repetidos
+- ...
+
+4. Hipótesis para probar
+- ...
+
+5. Acciones recomendadas
+- ...
+
+6. Memoria condensada
+Una sola frase corta que debería guardarse como aprendizaje.
+"""
+
+    response = client.responses.create(
+        model="gpt-5",
+        input=prompt,
+    )
+
+    dream_text = response.output_text.strip()
+
+    memory_id = save_memory("learning", dream_text, "dream_cycle")
+    add_activity(
+        "Dream Cycle",
+        "completed",
+        "Dream Cycle v0.1",
+        detail=dream_text,
+        ref_type="memory",
+        ref_id=memory_id,
+    )
+
+    return dream_text, memory_id
+
+
+
 def detect_action(user_message: str):
     try:
         response = client.responses.create(
@@ -1073,6 +1173,17 @@ def chat(request: ChatRequest):
                 text += f"\n{memory['id']}. [{memory['category']}] {memory['content']}"
 
             return {"response": text.strip()}
+
+    if msg in ["dream", "dream cycle", "sueña", "sonar", "soñar"]:
+        try:
+            dream_text, memory_id = run_dream_cycle()
+            add_message("assistant", dream_text)
+            return {
+                "response": f"🧠 Dream Cycle completado.\nMemoria learning #{memory_id} guardada.\n\n{dream_text}"
+            }
+        except Exception as e:
+            add_activity("Dream Cycle", "failed", "Dream Cycle error", detail=str(e))
+            return {"response": f"Dream Cycle falló: {str(e)}"}
 
     if msg.startswith("run ") or msg.startswith("ejecuta "):
         command_text = raw.strip()
