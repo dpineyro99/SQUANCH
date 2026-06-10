@@ -1,0 +1,48 @@
+# Secrets
+.env
+*.env
+credentials.json
+token.json
+telegram_chat_id.txt
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Databases / local state
+*.db
+*.db.backup
+*.sqlite
+*.sqlite3
+
+# Node / Next
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Backups
+*.backup
+*.backup.*
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local databases
+*.db
+
+# Temporary backups
+*_before_*.py
