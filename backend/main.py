@@ -749,6 +749,19 @@ Return ONLY valid JSON. No markdown. No explanation.
 
 Classify the user's message as one of:
 
+0. save_memory
+Use this if the user shares a preference, project context, investment thesis, long-term note, important decision, personal workflow preference, or something SQUANCH should remember for future conversations.
+
+Examples:
+- MSTR es mi exposición a BTC
+- quiero enfocarme en Polymarket Alpha
+- los agentes todavía no están listos para incorporarse
+- prefiero código completo y no buscar líneas
+- Cerebras me interesa como inversión de AI infra
+
+Return:
+{{"intent": "save_memory", "category": "general", "content": "clean memory text"}}
+
 1. codex_review
 Use this if the user wants to review code, inspect a project, search for bugs, analyze repo structure, run code review, or ask Codex to check something.
 
@@ -1031,6 +1044,36 @@ def chat(request: ChatRequest):
 
         return {"response": text.strip()}
 
+    memory_lookup_prefixes = [
+        "qué recuerdas de ",
+        "que recuerdas de ",
+        "qué sabes de ",
+        "que sabes de ",
+        "busca memoria de ",
+        "buscar memoria de ",
+        "memoria de ",
+        "memorias de ",
+    ]
+
+    for prefix in memory_lookup_prefixes:
+        if msg.startswith(prefix):
+            query = raw[len(prefix):].strip()
+
+            if not query:
+                return {"response": "Dime qué tema quieres buscar en memoria. Ejemplo: qué recuerdas de Cerebras"}
+
+            matches = search_memories(query, limit=10)
+            add_activity("Memory Engine", "searched", smart_summary(query), detail=query)
+
+            if not matches:
+                return {"response": f"No encontré memorias sobre: {query}"}
+
+            text = f"Memorias sobre {query}:\n"
+            for memory in matches:
+                text += f"\n{memory['id']}. [{memory['category']}] {memory['content']}"
+
+            return {"response": text.strip()}
+
     if msg.startswith("run ") or msg.startswith("ejecuta "):
         command_text = raw.strip()
         job_id = create_job("Executor Agent", command_text)
@@ -1205,6 +1248,21 @@ def chat(request: ChatRequest):
                 f"Puedes pedir el resultado con:\n"
                 f"job {job_id}"
             )
+        }
+
+    if action.get("intent") == "save_memory":
+        content = action.get("content", raw)
+        category = action.get("category", "general")
+
+        if not content:
+            content = raw
+
+        memory_id = save_memory(category, content, "auto")
+        summary = smart_summary(content)
+        add_activity("Memory Engine", "auto_saved", summary, detail=content, ref_type="memory", ref_id=memory_id)
+
+        return {
+            "response": f"🧠 Memoria guardada automáticamente:\n\n{content}"
         }
 
     if action.get("intent") == "create_event":
