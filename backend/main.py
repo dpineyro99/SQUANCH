@@ -1257,6 +1257,25 @@ def chat(request: ChatRequest):
         if not content:
             content = raw
 
+        raw_lower = raw.lower().strip()
+
+        project_prefixes = {
+            "polymarket:": "polymarket",
+            "sports:": "sports",
+            "sport:": "sports",
+            "squanch:": "squanch",
+            "portfolio:": "portfolio",
+            "portafolio:": "portfolio",
+            "personal:": "personal",
+            "vibebox:": "vibebox",
+        }
+
+        for prefix, detected_category in project_prefixes.items():
+            if raw_lower.startswith(prefix):
+                category = detected_category
+                content = raw.split(":", 1)[1].strip()
+                break
+
         memory_id = save_memory(category, content, "auto")
         summary = smart_summary(content)
         add_activity("Memory Engine", "auto_saved", summary, detail=content, ref_type="memory", ref_id=memory_id)
