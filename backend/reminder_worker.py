@@ -2,6 +2,7 @@ import os
 import re
 import time
 import sqlite3
+from pathlib import Path
 import requests
 from datetime import datetime, timedelta, date
 from dotenv import load_dotenv
@@ -13,7 +14,8 @@ except Exception:
 
 load_dotenv()
 
-DB_PATH = "squanch.db"
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "squanch.db"
 CHAT_ID_FILE = "telegram_chat_id.txt"
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
@@ -23,7 +25,7 @@ def now():
 
 
 def db():
-    return sqlite3.connect(DB_PATH)
+    return sqlite3.connect(str(DB_PATH))
 
 
 def send_telegram(text: str):

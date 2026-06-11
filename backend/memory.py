@@ -1,7 +1,9 @@
 import sqlite3
+from pathlib import Path
 from datetime import datetime
 
-DB_PATH = "squanch.db"
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "squanch.db"
 
 
 def now():
@@ -9,7 +11,7 @@ def now():
 
 
 def db():
-    return sqlite3.connect(DB_PATH)
+    return sqlite3.connect(str(DB_PATH))
 
 
 def save_memory(category: str, content: str, source: str = "manual"):

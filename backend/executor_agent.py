@@ -1,11 +1,13 @@
 import json
 import shlex
 import sqlite3
+from pathlib import Path
 import subprocess
 import time
 from datetime import datetime
 
-DB_PATH = "squanch.db"
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "squanch.db"
 PROJECT_ROOT = "/home/dpnhclawd/jarvis"
 
 SAFE_COMMANDS = {
@@ -27,7 +29,7 @@ def now():
 
 
 def db():
-    return sqlite3.connect(DB_PATH)
+    return sqlite3.connect(str(DB_PATH))
 
 
 def get_next_executor_job():

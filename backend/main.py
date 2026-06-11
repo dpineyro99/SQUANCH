@@ -6,6 +6,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from openai import OpenAI
 import sqlite3
+from pathlib import Path
 import subprocess
 import os
 import json
@@ -19,7 +20,8 @@ except Exception:
 load_dotenv()
 
 app = FastAPI()
-DB_PATH = "squanch.db"
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "squanch.db"
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app.add_middleware(
@@ -44,7 +46,7 @@ def now():
     return datetime.now().isoformat(timespec="seconds")
 
 def db():
-    return sqlite3.connect(DB_PATH)
+    return sqlite3.connect(str(DB_PATH))
 
 def init_db():
     conn = db()
